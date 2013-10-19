@@ -184,6 +184,22 @@ namespace akt {
     void start() {spiStart(&spi, &config);}
     void stop() {spiStop(&spi);}
 
+    // register oriented read
+    template<class T> void read(uint8_t reg, T &buf) {
+      spiSelect(&spi);
+      spiSend(&spi, sizeof(reg), &reg);
+      spiReceive(&spi, sizeof(buf), &buf);
+      spiUnselect(&spi);
+    }
+
+    // register oriented read
+    template<class T> void write(uint8_t reg, T &buf) {
+      spiSelect(&spi);
+      spiSend(&spi, sizeof(reg), &reg);
+      spiSend(&spi, sizeof(buf), &buf);
+      spiUnselect(&spi);
+    }
+
     void read_xyz(struct xyz_t &xyz) {
       uint8_t addr = OUT_X_L | LIS3_READ_BIT;
 
