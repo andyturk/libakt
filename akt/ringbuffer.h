@@ -4,6 +4,8 @@
 
 #include <cstdlib>
 #include <stdint.h>
+#include <cstddef>
+
 #include "akt/assert.h"
 
 namespace akt {
@@ -27,13 +29,21 @@ namespace akt {
       if (write_position >= read_position) {
         return (size_t) (write_position - read_position);
       } else {
-        return (size_t) ((limit - read_position) + write_position);
+        return (size_t) ((limit - read_position) + (write_position - storage));
+      }
+    }
+
+    size_t contiguous_read_capacity() const {
+      if (write_position >= read_position) {
+        return (size_t) (write_position - read_position);
+      } else {
+        return (size_t) (limit - read_position);
       }
     }
 
     size_t write_capacity() const {
       if (write_position >= read_position) {
-        return (size_t) ((limit - write_position) + read_position);
+        return (size_t) (((limit - storage) - 1) - (write_position - read_position));
       } else {
         return (size_t) ((read_position - write_position) - 1);
       }
@@ -74,10 +84,12 @@ namespace akt {
     }
 
     void skip(uint32_t offset) {
-      ptrdiff_t capacity = limit - storage;
-      assert(abs((ptrdiff_t) offset) < capacity);
+      size_t cap = read_capacity();
+
+      if (offset > cap) offset = cap;
+
       read_position += offset;
-      if (read_position > limit) read_position -= capacity;
+      if (read_position >= limit) read_position -= (limit - storage);
     }
 
     inline T &poke(int offset) const {
