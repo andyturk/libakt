@@ -22,7 +22,7 @@ namespace akt {
   class Debounce {
   public:
     enum {
-      DWELL = 10 // as in "dwell time"
+      DWELL = 5 // as in "dwell time"
     };
 
     Debounce() {
@@ -32,6 +32,8 @@ namespace akt {
 
     void update_state(uint32_t raw_switch_values) {
       history[next++] = raw_switch_values;
+      if (next == DWELL) next = 0;
+
       uint32_t new_state = 0xffffffff;
       for (unsigned i=0; i < DWELL; ++i) new_state &= history[i];
 
