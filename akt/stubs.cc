@@ -3,6 +3,12 @@
 #include "ch.h"
 #include "hal.h"
 
+void *operator new[](unsigned size) {
+  port_halt();
+  // not reached
+  return (void *) 0xffffffff;
+}
+
 extern "C" {
   void __cxa_pure_virtual() {
     chDbgAssert("unimplemented pure virtual", __FILE__, __LINE__);
@@ -54,6 +60,8 @@ extern "C" {
     while (1);
     (void) f;
   }
+
+#if !defined(STM32F0XX)
   void HardFaultVector(void) __attribute__((naked));
   void HardFaultVector(void) {
     __asm ("tst lr, #4");
@@ -62,4 +70,5 @@ extern "C" {
     __asm ("mrsne r0, psp");
     __asm ("b HardFaultVector_c");
   }
+#endif
 };

@@ -11,7 +11,9 @@ namespace akt {
         T value;
         int index;
       } max, min;
-      int count;
+
+    // use signed int here to ensure sum/count is also signed
+    int count;
 
       Extrema() {reset();}
 

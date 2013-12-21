@@ -14,8 +14,7 @@ namespace akt {
     virtual void event() {}
 
   public:
-    VTimer() {
-    }
+    VTimer() {}
 
     void set (systime_t when) {chVTSet (this, when, &vtimer_cb, this);}
     void setI(systime_t when) {chVTSetI(this, when, &vtimer_cb, this);}

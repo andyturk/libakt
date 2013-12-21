@@ -1,4 +1,5 @@
 #include "akt/shell.h"
+#include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
 #include <string.h>
@@ -6,11 +7,11 @@
 namespace akt {
   ShellBase::ShellBase(SerialDriver *sd,
                        const command_entry *commands,
-                       void *wa,
-                       size_t wa_size,
+                       void *work_area,
+                       size_t work_area_size,
                        const char *name,
                        tprio_t prio) :
-    ThreadBase(wa, wa_size, name, prio),
+    ThreadBase(work_area, work_area_size, name, prio),
     sd(sd),
     tty((BaseSequentialStream *) sd),
     prompt("> "),
@@ -201,6 +202,10 @@ namespace akt {
   }
 
 #if CH_USE_REGISTRY
+  extern "C" {
+    extern uint8_t __main_thread_stack_end__;
+  };
+
   void ShellBase::threads(int argc, char *argv[]) {
     static const char *states[] = {THD_STATE_NAMES};
 
@@ -211,11 +216,23 @@ namespace akt {
                "addr", "stku", "prio", "refs", "state", "time", "name");
 
       for (::Thread *t=chRegFirstThread(); t; t = chRegNextThread(t)) {
-#ifdef CH_DBG_HAVE_STKTOP
-        uint32_t stack_used = ((uint8_t *) t->p_stktop) - (uint8_t *) t->p_ctx.r13;
+#if defined(CH_DBG_HAVE_STKTOP) && defined(CH_DBG_ENABLE_STACK_CHECK)
+        uint8_t *stack_top, *untouched;
+
+        if (t->p_stktop == 0) { // must be the main thread
+          stack_top = &__main_thread_stack_end__;
+        } else {
+          stack_top = ((uint8_t *) t->p_stktop) ;
+        }
+
+        untouched = (uint8_t *) t->p_stklimit;
+        while (*untouched == CH_STACK_FILL_VALUE && untouched < stack_top) ++untouched;
+
+        uint32_t stack_used = untouched - (uint8_t *) t->p_stklimit;
 #else
         uint32_t stack_used = 0;
 #endif
+
         chprintf(tty, "%.8lx %.4lx %4lu %4lu %9s %.8lu %s\r\n",
                  (uint32_t)t, (uint32_t) stack_used /*t->p_ctx.r13*/,
                  (uint32_t)t->p_prio, (uint32_t)(t->p_refs - 1),

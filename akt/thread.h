@@ -85,11 +85,12 @@ namespace akt {
     WORKING_AREA(working_area, Size);
 
   public:
-    ChibiThread(const char *name) : ThreadBase(&working_area,
-                                               sizeof(working_area),
-                                               name,
-                                               NORMALPRIO)
-    {
-    } 
+    ChibiThread(const char *name, tprio_t priority = NORMALPRIO);
   };
+
+  template<unsigned Size>
+  ChibiThread<Size>::ChibiThread(const char *name, tprio_t priority) :
+    ThreadBase(&working_area, sizeof(working_area), name, priority)
+  {
+  }
 };
