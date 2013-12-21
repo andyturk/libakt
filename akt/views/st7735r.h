@@ -6,6 +6,25 @@
 
 namespace akt {
   namespace views {
+    class ST7735 : public Canvas {
+      enum {W=160, H=128};
+      uint16_t buffer[H][W];
+      IO &io;
+      coord col_start, row_start;
+
+    protected:
+      void set_window(coord x, coord y, coord w, coord h);
+      virtual void set_pixel(Point p, pixel value);
+      virtual pixel get_pixel(Point p) const;
+
+    public:
+      ST7735(IO &io);
+
+      void reset();
+      void flush(const Rect &r);
+    };
+
+#if 0
     class ST7735 : public Canvas, protected SPIDisplay {
     public:
       Plane<uint16_t, 160, 128> buffer;
@@ -25,5 +44,6 @@ namespace akt {
       coord col_start, row_start;
       coord width, height;
     };
+#endif
   };
 };

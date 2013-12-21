@@ -19,6 +19,11 @@ namespace akt {
     class Canvas;
     class Size;
 
+    enum display_orientation_t {
+      NORMAL,
+      ROTATE180
+    };
+
     struct Point {
       coord x, y;
 
@@ -105,6 +110,7 @@ namespace akt {
 
     bool operator ==(const Rect &left, const Rect &right);
     Rect operator |(const Rect &left, const Rect &right);
+    Rect center_size_within(const Rect &r, const Size &s);
 
 #define BYTESWAP(u16) ((((u16) & 0xff) << 8) | ((u16) >> 8))
 #define RGB565(r,g,b) (((((uint16_t) r) & 0xf8) << 8) | ((((uint16_t) g) & 0xfc) << 3) | (((uint16_t) b) >> 3))
@@ -144,7 +150,9 @@ namespace akt {
       Size size;
       uint16_t offset;
 
-      virtual Size measure(char c) const = 0;
+      static const char *end_of_line(const char *str);
+      virtual coord text_width(const char *str, unsigned len) const = 0;
+      virtual coord text_height(unsigned line_count) const = 0;
       virtual Size measure(const char *str) const = 0;
       virtual void draw_char(Canvas *c, Point p, char ch, pixel value) const = 0;
       virtual void draw_string(Canvas *c, Point p, const char *str, pixel value) const = 0;
@@ -196,125 +204,35 @@ namespace akt {
         return (glyph_t *) (data + (c-first)*glyph_stride);
       }
 
-      Size measure(char c) const;
-      Size measure(const char *str) const;
+      coord text_width(const char *str, unsigned len) const;
+      virtual coord text_height(unsigned line_count) const;
+      virtual Size measure(const char *str) const;
       uint16_t draw_char1(Canvas *c, Point p, char ch, pixel value) const;
       void draw_char(Canvas *c, Point p, char ch, pixel value) const;
       void draw_string(Canvas *c, Point p, const char *str, pixel value) const;
     };
 
-    struct PlaneBase {
-      const Size size;
-
-      PlaneBase(Size s) : size(s) {}
-
-      virtual void  set_pixel(Point p, pixel value) = 0;
-      virtual void  set_pixels(Point p, unsigned int n, pixel value);
-      virtual pixel get_pixel(Point p) const = 0;
-    };
-
-    template<class T>
-    class AddressablePlane : public PlaneBase {
-    public:
-      T *storage;
-
-      AddressablePlane(T *storage, Size s) : PlaneBase(s), storage(storage) {}
-      virtual void set_pixel(Point p, pixel value) {
-        assert(p.x >= 0 && p.x < size.w);
-        assert(p.y >= 0 && p.y < size.h);
-        storage[p.y*size.w + p.x] = (T) value;
-      }
-      virtual void set_pixels(Point p, unsigned int n, pixel value) {
-        assert(p.x >= 0 && p.x < size.w);
-        assert(p.y >= 0 && p.y < size.h);
-
-        T *s = &storage[p.y*size.w + p.x];
-        while (n-- > 0) *s++ = (T) value;
-      }
-      virtual pixel get_pixel(Point p) const {
-        return (pixel) storage[p.y*size.w + p.x];
-      }
-    };
-
-    template<class T, unsigned W, unsigned H>
-    class Plane : public AddressablePlane<T> {
-      T data[W*H];
-
-    public:
-      Plane() : AddressablePlane<T>(data, Size(W, H)) {}
-    };
-
-    class BitPlaneBase : public PlaneBase {
-      const unsigned stride;
-      uint8_t *storage;
-
-    public:
-      BitPlaneBase(uint8_t *s, Size size) :
-        PlaneBase(size),
-        stride((size.w+7)/8),
-        storage(s)
-      {}
-
-      BitPlaneBase(uint8_t *s, Size size, unsigned stride) :
-        PlaneBase(size),
-        stride(stride),
-        storage(s)
-      {}
-
-      virtual void set_pixel(Point p, pixel value);
-      virtual pixel get_pixel(Point p) const;
-    };
-
-    template<unsigned W, unsigned H>
-    class BitPlane : public BitPlaneBase {
-      uint8_t data[((W+7)*H)/8];
-
-    public:
-      BitPlane() : BitPlaneBase(data, Size(W,H)) {}
-    };
-
     class Canvas {
-      PlaneBase * const plane;
+    protected:
+      virtual void set_pixel(Point p, pixel value) = 0;
+      virtual pixel get_pixel(Point p) const = 0;
 
     public:
+      const Size size;
       const Rect bounds;
       Rect clip;
 
-      Canvas(PlaneBase *pb, Size s);
+      Canvas(Size s);
 
       virtual void init();
       virtual void reset();
       virtual void flush(const Rect &r) = 0;
+              void flush() { flush(bounds); }
       virtual void fill_rect(const Rect &r, pixel value);
+      virtual void draw_rect(const Rect &r, pixel value);
       virtual void draw_pixel(Point p, pixel value);
       virtual void draw_line(Point p0, Point p1, pixel value);
       virtual void draw_string(Point p, const char *str, const FontBase &f, pixel value);
-    };
-
-    struct RingBase {
-      RingBase *left;
-      RingBase *right;
-
-      static void join(RingBase *dst, RingBase *src) { // src joins dst
-        // remove src from its current ring
-        src->left->right = src->right;
-        src->right->left = src->left;
-
-        // form a singleton ring so that join(x,x) works
-        src->left = src->right = src;
-
-        // set up local pointers
-        src->right = dst->right;
-        src->left = dst;
-
-        // splice src into dest
-        dst->right->left = src;
-        dst->right = src;
-      }
-
-    public:
-      RingBase() { left = right = this; }
-      bool empty() const { return left == this; } // only need to check one side
     };
 
     class View : public Ring<View> {
@@ -331,17 +249,73 @@ namespace akt {
       void draw_all(Canvas &c);
       int count_subviews() const;
       void remove_all_subviews();
+      virtual Size good_size() const;
+    };
+
+    struct Style {
+      FontBase &font;
+      const pixel fg;
+      const pixel bg;
+
+      Style(FontBase &f, pixel fg, pixel bg) : font(f), fg(fg), bg(bg) {}
+    };
+
+    class StyledView : public View {
+    protected:
+      Style *style;
+
+    public:
+      StyledView() : style(0) {}
+      virtual void set_style(Style &s) {style = &s;}
     };
 
     class Screen : public View {
-    protected:
-      Canvas &root;
-
     public:
       Screen(Canvas &c);
       void init();
       void draw_all();
       void flush();
+
+      Canvas &root;
+    };
+
+    class IO {
+    public:
+      enum logical_pins {
+        CS_PIN         =  1,
+        DC_PIN         =  2,
+        RESET_PIN      =  4,
+        ENABLE_PIN     =  5,
+        MODE_PIN       =  6,
+        COM_PIN        =  7,
+      };
+
+      enum {
+        SLEEP = 0x00,
+        CS    = 0x01,
+        CMDS  = 0x02,
+        RESET = 0x03,
+        DATA  = 0x04,
+        PIN   = 0x05,
+        END   = 0x06,
+        ESC   = 0xff
+      };
+
+#define VIEW_IO_SLEEP(msec) akt::views::IO::ESC, akt::views::IO::SLEEP, msec
+#define VIEW_IO_SELECT      akt::views::IO::ESC, akt::views::IO::CS,    1
+#define VIEW_IO_UNSELECT    akt::views::IO::ESC, akt::views::IO::CS,    0
+#define VIEW_IO_COMMANDS    akt::views::IO::ESC, akt::views::IO::CMDS
+#define VIEW_IO_RESET(msec) akt::views::IO::ESC, akt::views::IO::RESET, msec
+#define VIEW_IO_DATA(len)   akt::views::IO::ESC, akt::views::IO::DATA,  len
+#define VIEW_IO_ESC         akt::views::IO::ESC, akt::views::IO::ESC
+#define VIEW_IO_END         akt::views::IO::ESC, akt::views::IO::END
+#define VIEW_IO_PIN(p,lvl)  akt::views::IO::ESC, akt::views::IO::PIN, p, lvl
+
+      virtual void init();
+      virtual void signal_pin(uint8_t pin, bool level) = 0;
+      virtual void sleep(unsigned msec) = 0;
+      virtual void send(const uint8_t *buffer, unsigned len) = 0;
+      virtual void interpret(const uint8_t *buffer);
     };
 
     class SPIDisplay {

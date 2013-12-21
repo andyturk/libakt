@@ -5,34 +5,19 @@
 
 namespace akt {
   namespace views {
-    class PDC8544 : public Canvas, protected SPIDisplay {
+    class PDC8544 : public Canvas {
+      enum {W=84, H=48};
+      uint8_t banks[H/8][W];
+      IO &io;
+
+    protected:
+      virtual void set_pixel(Point p, pixel value);
+      virtual pixel get_pixel(Point p) const;
+      
     public:
+      PDC8544(IO &io);
 
-      template<unsigned W, unsigned H>
-        struct NokiaBitmap : public PlaneBase {
-        uint8_t bytes[W][H];
-      NokiaBitmap() : PlaneBase(Size(W,H)) {}
-
-        virtual void set_pixel(Point p, pixel value) {
-          assert(p.x >= 0 && p.x < size.w);
-          assert(p.y >= 0 && p.y < size.h);
-          uint8_t &byte = bytes[p.x][p.y/8];
-          uint8_t mask = 1 << p.y%8;
-          if (value) byte |= mask; else byte &= ~mask;
-        }
-
-        virtual pixel get_pixel(Point p) const {
-          const uint8_t &byte = bytes[p.x][p.y/8];
-          uint8_t mask = 1 << p.y%8;
-          return (byte & mask) != 0;
-        }
-      };
-
-      NokiaBitmap<84,48> buffer;
-
-      PDC8544(SPIDriver *d, const SPIConfig &c, uint16_t dc, uint16_t rs);
-      virtual void init();
-      virtual void reset();
+      void reset();
       void flush(const Rect &r);
     };
   };

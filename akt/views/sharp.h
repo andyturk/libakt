@@ -7,154 +7,163 @@
 
 namespace akt {
   namespace views {
-    template<unsigned W, unsigned H>
-    class SharpMemoryLCD : public Canvas {
+    class SharpMemoryLCDBase : public Canvas {
+    protected:
       // These constants are defined such that the SPI interface must
       // send the LSB of each byte first.
       enum {
-        WRITE_LINE = 0x01,
-        VCOM       = 0x02,
-        CLEAR      = 0x04,
-        NOP        = 0x00
+        WRITE = 0x01,
+        VCOM  = 0x02,
+        CLEAR = 0x04,
+        NOP   = 0x00
       };
 
-      struct Line {
-        uint8_t  command;
-        uint8_t  number;
-        uint8_t  data[(W+7)/8];
-        uint16_t trailer;
-      } __attribute__ ((packed));
+      enum {
+        SINGLE_LINE_FLUSH = 0
+      };
 
-      struct Plane : PlaneBase {
-        Line lines[H]; 
+      /*
+       * each line on the display is represented by a 1- or 2-byte header
+       * followed by (width+7)/8 data bytes and finally a one byte trailer.
+       *
+       * struct Line {
+       *   struct {
+       * #if SINGLE_LINE_FLUSH
+       *     uint8_t command;
+       * #endif
+       *     uint8_t line_number;
+       *   } prefix;
+       *   uint8_t data[(W+7)/8];
+       *   uint8_t trailer;
+       * } __attribute__ ((packed));
+       *
+       */
 
-      public:
-        Plane() : PlaneBase(Size(W, H)) {
-          for (unsigned i=0; i < H; ++i) {
-            lines[i].number = i+1;
-            lines[i].trailer = 0;
-            for (unsigned j=0; j < (W+7)/8; ++j) {
-              lines[i].data[j] = 0x55;
-            }
-          }
-        }
-
-        virtual void set_pixel(Point p, pixel value) {
-          assert(p.x >= 0 && p.x < (int16_t) W);
-          assert(p.y >= 0 && p.y < (int16_t) H);
-
-          unsigned offset = p.x/8;
-          uint8_t bit =  1 << (p.x & 7);
-
-          if (value) {
-            lines[p.y].data[offset] |=  bit;
-          } else {
-            lines[p.y].data[offset] &= ~bit;
-          }
-        }
-
-        virtual pixel get_pixel(Point p) const {
-          assert(p.x >= 0 && p.x < (int16_t) W);
-          assert(p.y >= 0 && p.y < (int16_t) H);
-
-          unsigned offset = p.x/8;
-          uint8_t bit =  1 << (7 - (p.x & 0x0007));
-          return (lines[p.y].data[offset] & bit) ? 1 : 0;
-        }
-      } plane;
-
-      struct SharpSPIConfig : public SPIConfig {
-        SharpMemoryLCD *lcd;
-      } config;
-
-      uint16_t display_pin;
-
-      static void end_cb(SPIDriver *driver) {
-        ((SharpSPIConfig *) driver->config)->lcd->end();
-      }
-
-      void send_command(uint8_t command) {
-        if (vcom) command |= VCOM;
-        spiSend(&spi, 1, &command);
-      }
+      IO &io;
+      display_orientation_t orientation;
+      uint8_t &initial_command;
+      uint8_t *lines;
+      const unsigned line_data_length;
+      uint8_t vcom;
 
     protected:
-      virtual void end() {}
+      SharpMemoryLCDBase(IO &io, Size s, uint8_t *buffer, display_orientation_t o) :
+        Canvas(s),
+        io(io),
+        orientation(o),
+        initial_command(buffer[0]),
+        lines(&buffer[1]),
+        line_data_length(SINGLE_LINE_FLUSH + 1 + (size.w + 7)/8 + 1),
+        vcom(0)
+      {
+        for (int i=0; i < size.h; ++i) {
+          uint8_t *line = lines + i*line_data_length;
 
-      uint8_t vcom;
-      SPIDriver &spi;
+          // setup command for the line
+          if (SINGLE_LINE_FLUSH) *line++ = 0;   
+
+          // setup line_number
+          *line++ = i+1;
+
+          for (int j=0; j < (size.w+7)/8; ++j) {
+            *line++ = 0x55; // 50% gray
+          }
+
+          // setup trailer
+          *line++ = 0;
+        }
+      }
 
     public:
-      SharpMemoryLCD(SPIDriver &d, ioportid_t port, uint16_t nss, uint16_t disp) :
-        Canvas(&plane, Size(W, H)),
-        display_pin(disp),
-        vcom(false),
-        spi(d)
-      {
-        config.end_cb = 0; // &end_cb;
-        config.ssport = port;
-        config.sspad = nss;
-        config.lcd = this;
+      virtual void set_pixel(Point p, pixel value) {
+        assert(p.x >= 0 && p.x < size.w);
+        assert(p.y >= 0 && p.y < size.h);
 
-        config.cr1 = (SPI_CR1_BIDIOE   | // output only
-                      SPI_CR1_SSM      | // software slave select
-                      SPI_CR1_MSTR     | // master mode
-                      SPI_CR1_LSBFIRST | // send low bits first
-                      0 /* ,SPI_CR1_BR*/);       // BR bits == 1, slowest for now
+        if (orientation == ROTATE180) {
+          p.x = (size.w - p.x) - 1;
+          p.y = (size.h - p.y) - 1;
+        }
+
+        uint8_t *line = lines + p.y*line_data_length;
+        unsigned offset = 1 + SINGLE_LINE_FLUSH + p.x/8;
+        uint8_t bit =  1 << (p.x & 7);
+
+        if (value) {
+          line[offset] |=  bit;
+        } else {
+          line[offset] &= ~bit;
+        }
+      }
+
+      virtual pixel get_pixel(Point p) const {
+        assert(p.x >= 0 && p.x < size.w);
+        assert(p.y >= 0 && p.y < size.h);
+
+        if (orientation == ROTATE180) {
+          p.x = (size.w - p.x) - 1;
+          p.y = (size.h - p.y) - 1;
+        }
+
+        uint8_t *line = lines + p.y*line_data_length;
+        unsigned offset = 1 + SINGLE_LINE_FLUSH + p.x/8;
+        uint8_t bit =  1 << (7 - (p.x & 0x0007));
+        return (line[offset] & bit) ? 1 : 0;
+      }
+
+      virtual void flush(const Rect &r) {
+        const static uint8_t sequence0[] = {
+          VIEW_IO_PIN(IO::CS_PIN, true), // Sharp CS is active *high*
+          VIEW_IO_SLEEP(6),
+          VIEW_IO_END
+        };
+
+        const static uint8_t sequence1[] = {
+          VIEW_IO_PIN(IO::CS_PIN, false), // Sharp CS is active *high*
+          VIEW_IO_SLEEP(2),
+          VIEW_IO_END
+        };
+
+        initial_command = WRITE | vcom;
+        io.interpret(sequence0);
+        io.send(&initial_command, 1 + size.h*line_data_length);
+        io.interpret(sequence1);
       }
 
       void toggle_vcom() {
         vcom = vcom ? 0 : VCOM;
       }
 
-      void send_vcom() {
-        uint8_t sequence[3];
-
-        sequence[0] = NOP | vcom;
-        sequence[1] = 0;
-        sequence[2] = 0;
-
-        palSetPad(config.ssport, config.sspad);
-        spiSend(&spi, sizeof(sequence), sequence);
-        palClearPad(config.ssport, config.sspad);
-      }
-
       void set_display(bool value) {
-        if (value) {
-          palSetPad(config.ssport, display_pin);
-        } else {
-          palClearPad(config.ssport, display_pin);
-        }
+        uint8_t sequence[] = {
+          VIEW_IO_PIN(IO::ENABLE_PIN, value),
+          VIEW_IO_END
+        };
+
+        io.interpret(sequence);
       }
 
-      virtual void init() {
-        spiStart(&spi, &config);
+      void reset() {
+        uint8_t sequence[] = {
+          VIEW_IO_PIN(IO::CS_PIN, true), // Sharp CS is active *high*
+          (uint8_t) (CLEAR | vcom),
+          0,
+          0,
+          VIEW_IO_PIN(IO::CS_PIN, false), // Sharp CS is active *high*
+          VIEW_IO_END
+        };
+
+        io.interpret(sequence);
       }
+    };
 
-      virtual void reset() {
-        uint8_t sequence[3];
-
-        sequence[0] = CLEAR | vcom;
-        sequence[1] = 0;
-        sequence[2] = 0;
-
-        palSetPad(config.ssport, config.sspad);
-        spiSend(&spi, sizeof(sequence), sequence);
-        palClearPad(config.ssport, config.sspad);
-      }
-
-      virtual void flush(const Rect &r) {
-        flush();
-      }
-
-      void flush() {
-        for (unsigned i=0; i < H; ++i) {
-          palSetPad(config.ssport, config.sspad);
-          plane.lines[i].command = WRITE_LINE | vcom;
-          spiSend(&spi, sizeof(Line), (uint8_t *) &plane.lines[i]);
-          palClearPad(config.ssport, config.sspad);
-        }
-
+    class SharpMemoryLCD_128x128 : public SharpMemoryLCDBase {
+      uint8_t buffer[1 +                                    // initial command
+                     128*(SINGLE_LINE_FLUSH + 1 + 128/8 + 1) + // 128 lines of data
+                     1];                                    // trailer
+    public:
+      SharpMemoryLCD_128x128(IO &io) :
+        SharpMemoryLCDBase(io, Size(128, 128), buffer, ROTATE180)
+      {
       }
     };
   };

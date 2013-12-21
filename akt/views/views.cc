@@ -195,6 +195,28 @@ namespace akt {
       return u;
     }
 
+    Rect center_size_within(const Rect &r, const Size &s) {
+      Point upper_left = r.center() - s/2;
+      return Rect(upper_left, upper_left + s);
+    }
+
+    const char *FontBase::end_of_line(const char *str) {
+      if (!str) return 0;
+      while (1) {
+        switch (*str) {
+        case '\0' :
+        case '\n' :
+          return str;
+
+        default :
+          str += 1;
+        }
+      }
+
+      // not reached
+      return 0;
+    }
+
     MikroFont::MikroFont(const uint8_t *data, const Size &s, uint16_t offset, char first, char last) :
       data(data),
       first((unsigned char) first),
@@ -206,17 +228,47 @@ namespace akt {
       glyph_stride = height_in_bytes*size.w + 1; // first byte in each glyph is width
     }
 
-    Size MikroFont::measure(char c) const {
-      return Size(GAP + glyph(c)->width, size.h);
-    }
-     
-    Size MikroFont::measure(const char *str) const {
-      uint16_t w=0;
-      while (*str) {
-        const glyph_t *g = glyph((unsigned char) *str++);
-        w += g->width;
+    coord MikroFont::text_width(const char *str, unsigned len) const {
+      coord width = 0;
+
+      for (unsigned i=0; i < len; ++i) {
+        const glyph_t *g = glyph((unsigned char) str[i]);
+        width += g->width;
       }
-      return Size(w, size.h);
+
+      if (len > 0) width += GAP*(len - 1);
+
+      return width;
+    }
+
+    coord MikroFont::text_height(unsigned line_count) const {
+      coord result = line_count*size.h;
+      if (line_count > 1) result += (line_count - 1)*GAP;
+      return result;
+    }
+
+    Size MikroFont::measure(const char *str) const {
+      Size s(0,0);
+      unsigned line_count = 0;
+
+      while (1) {
+        const char *end = end_of_line(str);
+        coord w = text_width(str, end - str);
+        if (w > s.w) s.w = w;
+        s.h += size.h;
+        line_count += 1;
+
+        str = end;
+
+        if (*str == '\0') {
+          break;
+        } else if (*str == '\n') {
+          str++;
+        }
+      }
+
+      if (line_count > 0) s.h += GAP*(line_count - 1);
+      return s;
     }
 
     uint16_t MikroFont::draw_char1(Canvas *c, Point origin, char ch, pixel value) const {
@@ -238,29 +290,27 @@ namespace akt {
       draw_char1(c, p, ch, value);
     }
 
-    void MikroFont::draw_string(Canvas *c, Point p, const char *str, pixel value) const {
-      while (*str) p.x += draw_char1(c, p, *str++, value);
-    }
+    void MikroFont::draw_string(Canvas *c, Point p0, const char *str, pixel value) const {
+      Point p = p0;
 
-    void PlaneBase::set_pixels(Point p, unsigned n, pixel value) {
-      while (n-- > 0) {
-        set_pixel(p, value);
-        p.x += 1;
+      while (*str) {
+        char ch = *str++;
+
+        switch (ch) {
+        case '\n' :
+          p.x = p0.x;
+          p.y += size.h;
+          break;
+
+        default :
+          p.x += draw_char1(c, p, ch, value);
+          break;
+        }
       }
     }
 
-    void BitPlaneBase::set_pixel(Point p, pixel value) {
-      uint8_t bit = 1 << (p.x % 8);
-      uint8_t &byte = storage[p.y*stride + p.x];
-      if (value) byte |= bit; else byte &= ~bit;
-    }
-
-    pixel BitPlaneBase::get_pixel(Point p) const {
-      return 0 != (storage[p.y*stride + p.x] & (1 << (p.x % 8)));
-    }
-
-    Canvas::Canvas(PlaneBase *pb, Size s) :
-      plane(pb),
+    Canvas::Canvas(Size s) :
+      size(s),
       bounds(Point(0, 0), s),
       clip(bounds)
     {
@@ -279,14 +329,23 @@ namespace akt {
       unsigned int xlim = cr.max.x, ylim = cr.max.y;
       for (unsigned int x=cr.min.x; x < xlim; ++x) {
         for (unsigned int y=cr.min.y; y < ylim; ++y) {
-          plane->set_pixel(Point(x, y), value);
+          set_pixel(Point(x, y), value);
         }
       }
     }
 
+    void Canvas::draw_rect(const Rect &r, pixel value) {
+      Point bottom_right(r.max.x-1, r.max.y-1);
+
+      draw_line(r.min, Point(bottom_right.x, r.min.y), value);
+      draw_line(r.min, Point(r.min.x, bottom_right.y), value);
+      draw_line(bottom_right, Point(r.min.x, bottom_right.y), value);
+      draw_line(bottom_right, Point(bottom_right.x, r.min.y), value);
+    }
+
     void Canvas::draw_pixel(Point p, pixel value) {
       // check p+1 because the pixel extends down and right
-      if (clip.contains(p+1)) plane->set_pixel(p, value);
+      if (clip.contains(p+1)) set_pixel(p, value);
     }
 
 #if USE_SIMPLIFIED_BRESENHAM
@@ -295,17 +354,17 @@ namespace akt {
 
       if (p0.x == p1.x) { // vertical line
         coord ymax = std::max(p0.y, p1.y);
-        for (coord y=std::min(p0.y, p1.y); y <= ymax; ++y) plane->set_pixel(Point(p0.x, y), value);
+        for (coord y=std::min(p0.y, p1.y); y <= ymax; ++y) set_pixel(Point(p0.x, y), value);
       } else if (p0.y == p1.y) {
         coord xmax = std::max(p0.x, p1.x);
-        for (coord x=std::min(p0.x, p1.x); x <= xmax; ++x) plane->set_pixel(Point(x, p0.y), value);
+        for (coord x=std::min(p0.x, p1.x); x <= xmax; ++x) set_pixel(Point(x, p0.y), value);
       } else {
         int dx = std::abs(p1.x-p0.x), dy = std::abs(p1.y-p0.y);
         int sx = (p0.x < p1.x) ? 1 : -1, sy = (p0.y < p1.y) ? 1 : -1;
         int err = dx-dy;
 
         while (true) {
-          plane->set_pixel(p0, value);
+          set_pixel(p0, value);
           if (p0.x == p1.x && p0.y == p1.y) return;
           int e2 = 2*err;
           if (e2 > -dy) {
@@ -324,10 +383,10 @@ namespace akt {
 
       if (p0.x == p1.x) { // vertical line
         coord ymax = std::max(p0.y, p1.y);
-        for (coord y=std::min(p0.y, p1.y); y <= ymax; ++y) plane->set_pixel(Point(p0.x, y), value);
+        for (coord y=std::min(p0.y, p1.y); y <= ymax; ++y) set_pixel(Point(p0.x, y), value);
       } else if (p0.y == p1.y) {
         coord xmax = std::max(p0.x, p1.x);
-        for (coord x=std::min(p0.x, p1.x); x <= xmax; ++x) plane->set_pixel(Point(x, p0.y), value);
+        for (coord x=std::min(p0.x, p1.x); x <= xmax; ++x) set_pixel(Point(x, p0.y), value);
       } else {
         bool steep = std::abs(p1.y - p0.y) > std::abs(p1.x - p0.x);
 
@@ -349,9 +408,9 @@ namespace akt {
 
         for (coord x=p0.x; x <= p1.x; ++x) {
           if (steep) {
-            plane->set_pixel(Point(y, x), value);
+            set_pixel(Point(y, x), value);
           } else {
-            plane->set_pixel(Point(x, y), value);
+            set_pixel(Point(x, y), value);
           }
 
           if ((error -= dy) < 0) {
@@ -415,8 +474,8 @@ namespace akt {
           if (sub->frame.intersects(original_clip)) {
             c.clip = sub->frame & original_clip;
             sub->draw_all(c);
-            sub = (View *) sub->left;
           }
+          sub = (View *) sub->left;
         } while (sub != subviews);
       }
 
@@ -448,6 +507,86 @@ namespace akt {
         } while (next != last);
 
         subviews = 0;
+      }
+    }
+
+
+    Size View::good_size() const {
+      return Size(0,0);
+    }
+
+    void IO::init() {
+    }
+
+    void IO::interpret(const uint8_t *buffer) {
+      for (;;) {
+        const uint8_t *buffer0 = buffer;
+
+        // find next escape sequence
+        while (*buffer != ESC) ++buffer;
+
+        if (buffer0 < buffer) {
+          unsigned len = buffer - buffer0;
+          // send non-escaped bytes as is
+          send(buffer0, len);
+
+          // note that buffer has already been incremented to the
+          // next escape code
+        }
+
+        // assert(*buffer == ESC);
+        buffer += 1;
+
+        // handle the escape
+        switch (*buffer++) {
+
+        case SLEEP : { // delay
+          unsigned msec = (unsigned) *buffer++;
+          sleep(msec);
+          break;
+        }
+
+        case CS : // chip select (arg == 0 when display is *NOT* selected)
+          signal_pin(CS_PIN, 0 == *buffer++);
+          break;
+
+        case CMDS : // commands follow
+          signal_pin(DC_PIN, false);
+          break;
+
+        case RESET : // send a reset pulse (arg == pulse width in msec)
+          signal_pin(RESET_PIN, true); // active low
+          sleep(buffer[0]);
+          signal_pin(RESET_PIN, false); // active low
+          sleep(buffer[0]);
+          signal_pin(RESET_PIN, true); // active low
+
+          buffer += 1;
+          break;
+
+        case DATA : {
+          unsigned len = *buffer++;
+          signal_pin(DC_PIN, true);
+          send(buffer, len);
+          buffer += len;
+          break;
+        }
+
+        case PIN :
+          signal_pin(buffer[0], buffer[1]);
+          buffer += 2;
+          break;
+
+        case END :
+          return;
+
+        case ESC :
+          send(buffer - 1, 1);
+          break;
+
+        default :
+          for (;;); // lock up!
+        }
       }
     }
 
