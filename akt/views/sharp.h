@@ -165,6 +165,11 @@ namespace akt {
         SharpMemoryLCDBase(io, Size(128, 128), buffer, ROTATE180)
       {
       }
+
+      SharpMemoryLCD_128x128(IO &io, display_orientation_t orient) :
+        SharpMemoryLCDBase(io, Size(128, 128), buffer, orient)
+      {
+      }
     };
   };
 };
