@@ -250,6 +250,7 @@ namespace akt {
       int count_subviews() const;
       void remove_all_subviews();
       virtual Size good_size() const;
+      virtual void invalidate(const Rect &r);
     };
 
     struct Style {
@@ -270,12 +271,15 @@ namespace akt {
     };
 
     class Screen : public View {
+      Rect dirty;
+
     public:
       Screen(Canvas &c);
       void init();
       void draw_all();
       void flush();
-
+      virtual void invalidate(const Rect &r);
+      void update_if_dirty();
       Canvas &root;
     };
 

@@ -515,6 +515,10 @@ namespace akt {
       return Size(0,0);
     }
 
+    void View::invalidate(const Rect &r) {
+      if (superview) superview->invalidate(r & frame);
+    }
+
     void IO::init() {
     }
 
@@ -590,7 +594,10 @@ namespace akt {
       }
     }
 
-    Screen::Screen(Canvas &c) : root(c) {
+    Screen::Screen(Canvas &c) :
+      dirty(0, 0, 0, 0),
+      root(c)
+    {
     }
 
     void Screen::init() {
@@ -606,6 +613,20 @@ namespace akt {
       root.flush(root.bounds);
     }
 
+    void Screen::invalidate(const Rect &r) {
+      if (!r.empty()) dirty = dirty | (r & root.bounds);
+    }
+
+    void Screen::update_if_dirty() {
+      Rect dirty_copy(dirty);
+      dirty = Rect(0, 0, 0, 0);
+
+      if (!dirty_copy.empty()) {
+        root.clip = dirty_copy;
+        draw_all();
+        root.flush(dirty_copy);
+      }
+    }
 
     SPIDisplay::SPIDisplay(SPIDriver &d, const SPIConfig &c, uint16_t dc, uint16_t reset) :
       spi(d),
