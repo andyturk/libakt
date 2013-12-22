@@ -26,29 +26,32 @@ namespace akt {
     };
 
     Debounce() {
+      reset();
+    }
+
+    void reset() {
       next = debounced_state = 0;
       for (unsigned i=0; i < DWELL; ++i) history[i] = 0;
     }
 
-    void update_state(uint32_t raw_switch_values) {
+    uint32_t update(uint32_t raw_switch_values) {
       history[next++] = raw_switch_values;
       if (next == DWELL) next = 0;
 
       uint32_t new_state = 0xffffffff;
       for (unsigned i=0; i < DWELL; ++i) new_state &= history[i];
 
-      if (new_state != debounced_state) {
-        state_changed(debounced_state, new_state);
+      uint32_t result;
+
+      if ((result = (new_state ^ debounced_state))) {
         debounced_state = new_state;
       }
-    }
-    
-    uint32_t state() const {
-      return debounced_state;
+
+      return result;
     }
 
-  protected:
-    virtual void state_changed(uint32_t old_state, uint32_t new_state) {
+    uint32_t state() const {
+      return debounced_state;
     }
 
   private:
