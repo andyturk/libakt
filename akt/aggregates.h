@@ -46,6 +46,12 @@ namespace akt {
     decltype (Extrema<T>::max.value + Extrema<T>::min.value) sum;
 
   public:
+    MaxMinMean() :
+      Extrema<T>(),
+      sum(0)
+    {
+    }
+
     MaxMinMean &operator+=(T value) {
       Extrema<T>::operator+=(value);
       sum += value;
