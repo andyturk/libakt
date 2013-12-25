@@ -47,7 +47,7 @@ namespace akt {
 
   public:
     MaxMinMean() :
-      Extrema(),
+      Extrema<T>(),
       sum(0)
     {
     }

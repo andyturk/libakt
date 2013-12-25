@@ -294,7 +294,7 @@ namespace akt {
 
     public:
       Screen(Canvas &c);
-      void init();
+      virtual void init();
       void draw_all();
       void flush();
       virtual void invalidate(const Rect &r);
