@@ -221,10 +221,10 @@ namespace akt {
     };
 
     class XBMImage : public ImageBase {
-      const char * const data;
+      const unsigned char * const data;
 
     public:
-      XBMImage(int width, int height, const char *data, pixel color);
+      XBMImage(int width, int height, const unsigned char *data, pixel color);
       virtual void draw(Canvas *c, Point p) const;
 
       const pixel color;
