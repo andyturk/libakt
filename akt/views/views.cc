@@ -309,6 +309,30 @@ namespace akt {
       }
     }
 
+    ImageBase::ImageBase(Size s) :
+      size(s)
+    {
+    }
+
+    XBMImage::XBMImage(int width, int height, const char *data, pixel color) :
+      ImageBase(Size(width, height)),
+      data(data),
+      color(color)
+    {
+    }
+
+    void XBMImage::draw(Canvas *c, Point p) const {
+      const unsigned stride = (size.w + 7)/8;
+
+      for (int y=0; y < size.h; ++y) {
+        for (int x=0; x < size.w; ++x) {
+          if (data[stride*y + x/8] & (1 << (7 - (x % 8)))) {
+            c->draw_pixel(Point(p.x + x, p.y + y), color);
+          }
+        }
+      }
+    }
+    
     Canvas::Canvas(Size s) :
       size(s),
       bounds(Point(0, 0), s),
@@ -425,6 +449,10 @@ namespace akt {
 
     void Canvas::draw_string(Point p, const char *str, const FontBase &f, pixel value) {
       f.draw_string(this, p, str, value);
+    }
+
+    void Canvas::draw_image(Point p, ImageBase &img) {
+      img.draw(this, p);
     }
 
     View::View() :

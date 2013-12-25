@@ -212,6 +212,24 @@ namespace akt {
       void draw_string(Canvas *c, Point p, const char *str, pixel value) const;
     };
 
+    class ImageBase {
+    public:
+      ImageBase(Size s);
+      virtual void draw(Canvas *c, Point p) const = 0;
+
+      const Size size;
+    };
+
+    class XBMImage : public ImageBase {
+      const char * const data;
+
+    public:
+      XBMImage(int width, int height, const char *data, pixel color);
+      virtual void draw(Canvas *c, Point p) const;
+
+      const pixel color;
+    };
+
     class Canvas {
     protected:
       virtual void set_pixel(Point p, pixel value) = 0;
@@ -233,6 +251,7 @@ namespace akt {
       virtual void draw_pixel(Point p, pixel value);
       virtual void draw_line(Point p0, Point p1, pixel value);
       virtual void draw_string(Point p, const char *str, const FontBase &f, pixel value);
+      virtual void draw_image(Point p, ImageBase &b);
     };
 
     class View : public Ring<View> {
