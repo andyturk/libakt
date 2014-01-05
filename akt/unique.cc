@@ -1,5 +1,7 @@
 #include "akt/unique.h"
 
+#include "hal.h"
+
 #include <stddef.h>
 
 using namespace akt;
