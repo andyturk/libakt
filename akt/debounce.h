@@ -18,6 +18,8 @@
  *             state_changed() when any of the switches have changed.
  */
 
+#include <stdint.h>
+
 namespace akt {
   class Debounce {
   public:
