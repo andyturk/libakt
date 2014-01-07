@@ -290,7 +290,8 @@ namespace akt {
     };
 
     class Screen : public View {
-      Rect dirty;
+      bool is_dirty;
+      Rect dirty_rect;
 
     public:
       Screen(Canvas &c);

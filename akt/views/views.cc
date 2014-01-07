@@ -623,7 +623,8 @@ namespace akt {
     }
 
     Screen::Screen(Canvas &c) :
-      dirty(0, 0, 0, 0),
+      is_dirty(false),
+      dirty_rect(0, 0, 0, 0),
       root(c)
     {
     }
@@ -642,17 +643,28 @@ namespace akt {
     }
 
     void Screen::invalidate(const Rect &r) {
-      if (!r.empty()) dirty = dirty | (r & root.bounds);
+      if (!r.empty()) {
+        if (is_dirty) {
+          dirty_rect = dirty_rect | (r & root.bounds);
+        } else {
+          dirty_rect = r;
+        }
+
+        is_dirty = true;
+      }
     }
 
     void Screen::update_if_dirty() {
-      Rect dirty_copy(dirty);
-      dirty = Rect(0, 0, 0, 0);
+      Rect dirty_rect_copy(dirty_rect);
+      bool is_dirty_copy(is_dirty);
 
-      if (!dirty_copy.empty()) {
-        root.clip = dirty_copy;
+      dirty_rect = Rect(0, 0, 0, 0);
+      is_dirty = false;
+
+      if (is_dirty_copy) {
+        root.clip = dirty_rect_copy;
         draw_all();
-        root.flush(dirty_copy);
+        root.flush(dirty_rect_copy);
       }
     }
 
