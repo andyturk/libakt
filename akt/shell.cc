@@ -4,6 +4,7 @@
 #include "chprintf.h"
 
 #include <cstring>
+#include <cstdio>
 
 using namespace akt;
 
@@ -115,6 +116,28 @@ msg_t ShellCommand::run_loop(void *) {
 
   return 0;
 }
+
+template<class T>
+bool ShellCommand::parse_number(const char *str, T &out) {
+  unsigned int hex;
+  int dec;
+
+  if (sscanf(str, "0x%x", &hex)) {
+    out = hex;
+    return true;
+  }
+
+  if (sscanf(str, "%d", &dec)) {
+    out = dec;
+    return true;
+  }
+
+  return false;
+}
+
+template bool ShellCommand::parse_number(const char *str, uint16_t &out);
+template bool ShellCommand::parse_number(const char *str, uint8_t &out);
+template bool ShellCommand::parse_number(const char *str, int &out);
 
 HelpCommand::HelpCommand() :
   ShellCommand("help")

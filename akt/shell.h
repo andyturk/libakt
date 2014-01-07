@@ -60,6 +60,12 @@ namespace akt {
      */
     static ShellCommand *find_command(const char *name);
 
+    /**
+     * @brief Utility function for parsing parsing shell arguments
+     */
+    template<class T>
+    bool parse_number(const char *str, T &out);
+
     enum {
       LINE_SIZE = 80,                   /// size of internal line buffer
       MAX_ARGS = 5                      /// max number of words parsed
