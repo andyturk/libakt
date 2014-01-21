@@ -6,6 +6,15 @@
 
 namespace akt {
   namespace views {
+
+    void number_to_string(uint32_t number, char *string, unsigned int string_length) {
+        while (string_length > 0) {
+            string[--string_length] = (char)('0' + number % 10);
+            number = number/10;
+        }
+    }
+
+
     Point::Point() {
     }
 
@@ -332,7 +341,7 @@ namespace akt {
         }
       }
     }
-    
+
     Canvas::Canvas(Size s) :
       size(s),
       bounds(Point(0, 0), s),
@@ -450,6 +459,7 @@ namespace akt {
     void Canvas::draw_string(Point p, const char *str, const FontBase &f, pixel value) {
       f.draw_string(this, p, str, value);
     }
+
 
     void Canvas::draw_image(Point p, ImageBase &img) {
       img.draw(this, p);
