@@ -24,8 +24,6 @@ namespace akt {
       ROTATE180
     };
 
-    void number_to_string(uint32_t number, char *string, unsigned int string_length);
-
     struct Point {
       coord x, y;
 

@@ -7,14 +7,6 @@
 namespace akt {
   namespace views {
 
-    void number_to_string(uint32_t number, char *string, unsigned int string_length) {
-        while (string_length > 0) {
-            string[--string_length] = (char)('0' + number % 10);
-            number = number/10;
-        }
-    }
-
-
     Point::Point() {
     }
 
