@@ -81,7 +81,8 @@ namespace akt {
    */
   class FileLog : public LogBase {
     FIL file;
-    char buffer[1024];
+    char *const buffer;
+    const size_t buffer_size;
     size_t bytes_since_sync;
     FRESULT sync_result, write_result;
 
@@ -91,7 +92,7 @@ namespace akt {
 
   public:
     // name will be the name of the background thread, not the name of the file
-    FileLog(const char *name);
+    FileLog(const char *name, char *buffer, size_t size);
 
     bool open(const char *path);
     virtual void flush() override;

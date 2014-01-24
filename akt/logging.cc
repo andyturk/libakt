@@ -135,8 +135,10 @@ bool ConsoleLog::is_logging() const {
   return true;
 }
 
-FileLog::FileLog(const char *name) :
-  LogBase(name, buffer, sizeof(buffer)),
+FileLog::FileLog(const char *name, char *buffer, size_t len) :
+  LogBase(name, buffer, len),
+  buffer(buffer),
+  buffer_size(len),
   bytes_since_sync(0)
 {
   file.fs = 0;
