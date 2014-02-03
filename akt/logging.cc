@@ -144,6 +144,10 @@ FileLog::FileLog(const char *name, char *buffer, size_t len) :
   file.fs = 0;
 }
 
+size_t FileLog::log_file_size() const {
+  return (size_t) f_tell(&file);
+}
+
 bool FileLog::open(const char *path) {
   if (file.fs != 0) return false;
 
