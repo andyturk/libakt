@@ -95,7 +95,7 @@ namespace akt {
     FileLog(const char *name, char *buffer, size_t size);
 
     size_t log_file_size() const;
-    bool open(const char *path);
+    virtual bool open(const char *path);
     virtual void flush() override;
     void close();
     virtual bool is_logging() const override;
