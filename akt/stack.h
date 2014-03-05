@@ -30,4 +30,4 @@ namespace akt {
       return true;
     }
   };
-};
+}
