@@ -15,6 +15,7 @@ OBJ                      = $(BUILD)/obj
 # Source files
 C_SRC                   += 
 CXX_SRC                 += src/gtest-all.cc src/gtest_main.cc
+CXX_SRC                 += $(LIBAKT_ROOT)/akt/json/reader.cc
 CXX_SRC                 += $(shell find . -type f -name '*test.cc')
 
 # Object files
@@ -26,6 +27,7 @@ CFLAGS                  += -I$(LIBAKT_ROOT)
 CFLAGS                  += -g
 CFLAGS                  += -Wall
 
+CXXFLAGS                += -std=c++11
 CXXFLAGS                += $(CFLAGS)
 
 DIRS                    += $(BUILD) $(BUILD)/deps
