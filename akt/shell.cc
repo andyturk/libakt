@@ -183,6 +183,9 @@ void InfoCommand::exec(int argc, char *argv[]) {
     chprintf(tty, "Build time:   %s%s%s\r\n", __DATE__, " - ", __TIME__);
 #endif
 #endif
+    chprintf (tty, "System Clock: %d.%03dMHz\r\n",
+              STM32_SYSCLK/1000000,
+              (STM32_SYSCLK%1000000)/1000);
   }
 }
 
