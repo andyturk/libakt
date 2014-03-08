@@ -1,3 +1,6 @@
+#include <cstring>
+#include <cstdlib>
+
 #include "akt/json/reader.h"
 
 using namespace akt::json;
@@ -74,6 +77,26 @@ inline bool Reader::is_whitespace(char ch) {
   case ' ' : case '\r' : case '\n' : case '\t' : return true;
   default  : return false;
   }
+}
+
+void Reader::handle_keyword() {
+  if (!strcmp("true", token.buffer)) {
+    delegate->literal_true();
+  } else if (!strcmp("false", token.buffer)) {
+    delegate->literal_false();
+  } else if (!strcmp("null", token.buffer)) {
+    delegate->literal_null();
+  } else {
+    error();
+  }
+}
+
+void Reader::handle_integer() {
+  delegate->number((int) atoi(token.buffer));
+}
+
+void Reader::handle_number() {
+  delegate->number((float) atof(token.buffer));
 }
 
 void Reader::read(const char *text, unsigned len) {
@@ -217,7 +240,8 @@ void Reader::read(const char *text, unsigned len) {
 
         default :
           finish_token();
-          delegate->keyword(token.buffer);
+          handle_keyword();
+
           --text; // keep this character for the next state
           state = state_after_value;
         }
@@ -350,7 +374,7 @@ void Reader::read(const char *text, unsigned len) {
 
         default :
           finish_token();
-          delegate->keyword(token.buffer);
+          handle_integer();
           --text; // keep this character for the next state
           state = state_after_value;
         }
@@ -363,17 +387,10 @@ void Reader::read(const char *text, unsigned len) {
           append_token(ch);
           break;
 
-        case 'e' :
-        case 'E' :
+        default :
           // must have at least one fractional digit after the decimal
           error();
           break;
-
-        default :
-          finish_token();
-          delegate->number(token.buffer);
-          --text; // keep this character for the next state
-          state = state_after_value;
         }
         break;
 
@@ -391,7 +408,7 @@ void Reader::read(const char *text, unsigned len) {
 
         default :
           finish_token();
-          delegate->number(token.buffer);
+          handle_number();
           --text; // keep this character for the next state
           state = state_after_value;
         }
@@ -412,7 +429,7 @@ void Reader::read(const char *text, unsigned len) {
 
         default :
           finish_token();
-          delegate->number(token.buffer);
+          handle_number();
           --text; // keep this character for the next state
           state = state_after_value;
           break;
@@ -428,7 +445,7 @@ void Reader::read(const char *text, unsigned len) {
 
         default :
           finish_token();
-          delegate->number(token.buffer);
+          handle_number();
           --text; // keep this character for the next state
           state = state_after_value;
           break;
@@ -443,7 +460,7 @@ void Reader::read(const char *text, unsigned len) {
 
         default :
           finish_token();
-          delegate->number(token.buffer);
+          handle_number();
           --text; // keep this character for the next state
           state = state_after_value;
           break;

@@ -27,6 +27,9 @@ namespace akt {
       void start_token();
       void append_token(char ch);
       void finish_token();
+      void handle_keyword();
+      void handle_integer();
+      void handle_number();
 
       bool is_whitespace(char ch);
 

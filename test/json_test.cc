@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 #include <cstring>
+#include <cstdlib>
 
 using namespace akt::json;
 
@@ -29,10 +30,19 @@ public:
   virtual void string(const char *text) override {
   }
 
-  virtual void keyword(const char *text) override {
+  virtual void literal_true() override {
   }
 
-  virtual void number(const char *text) override {
+  virtual void literal_false() override {
+  }
+
+  virtual void literal_null() override {
+  }
+
+  virtual void number(int32_t n) override {
+  }
+
+  virtual void number(float n) override {
   }
 
   virtual void error() override {
@@ -120,30 +130,44 @@ public:
     }
   }
 
+  virtual void literal_true() override {
+    string("true");
+  }
+
+  virtual void literal_false() override {
+    string("false");
+  }
+
+  virtual void literal_null() override {
+    string("null");
+  }
+
   virtual void member_name(const char *text) {
     // a member name is the same as a string for our purposes
     string(text);
   }
 
-  virtual void keyword(const char *text) {
+  virtual void number(int32_t n) {
     const char *match = *tokens++;
 
     if (match == 0) {
       error();
     } else if (status == INCOMPLETE) {
-      if (strcmp(match, text)) error();
+      int32_t match_n = atoi(match);
+      if (n != match_n) error();
     } else {
       error();
     }
   }
 
-  virtual void number(const char *text) {
+  virtual void number(float n) {
     const char *match = *tokens++;
 
     if (match == 0) {
       error();
     } else if (status == INCOMPLETE) {
-      if (strcmp(match, text)) error();
+      float match_n = (float) atof(match);
+      if (n != match_n) error();
     } else {
       error();
     }
@@ -230,8 +254,17 @@ TEST_F(JSONTest, ParseEmptyObject) {
   EXPECT_TRUE(parse("{}", replay));
 }
 
-TEST_F(JSONTest, ParseOneMemberObject) {
+TEST_F(JSONTest, ParseOneMemberInt1) {
   static const char *replay[] = {"{", "foo", "456", "}", 0};
   EXPECT_TRUE(parse("{\"foo\": 456}", replay));
-  //  EXPECT_TRUE(parse("  {  \"foo\":   456  }   ", replay));
+}
+
+TEST_F(JSONTest, ParseOneMemberInt2) {
+  static const char *replay[] = {"{", "foo", "456", "}", 0};
+  EXPECT_TRUE(parse("  {  \"foo\":   456  }   ", replay));
+}
+
+TEST_F(JSONTest, ParseFloat1) {
+  static const char *replay[] = {"[", "1.0", "3.1415", "-6", "-3.0E12", "]", 0};
+  EXPECT_TRUE(parse("[1.0, 3.1415, -6, -3.0E12]", replay));
 }

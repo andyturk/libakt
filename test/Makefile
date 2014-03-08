@@ -24,7 +24,7 @@ OBJECTS                  = $(addprefix $(OBJ)/, $(C_SRC:.c=.o) $(CXX_SRC:.cc=.o)
 CFLAGS                  += -I$(GTEST_ROOT)/include
 CFLAGS                  += -I$(GTEST_ROOT)
 CFLAGS                  += -I$(LIBAKT_ROOT)
-CFLAGS                  += -g
+CFLAGS                  += -g3
 CFLAGS                  += -Wall
 
 CXXFLAGS                += -std=c++11
@@ -37,6 +37,7 @@ VPATH                   = $(GTEST_ROOT)
 
 help :
 	@echo "The following targets are available:"
+	@echo "  make run               -- compile and run tests"
 	@echo "  make a.out             -- compile and link executable"
 	@echo "  make clean             -- nukes build products"
 	@echo "  make info              -- stuff for debugging the Makefile"
