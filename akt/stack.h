@@ -6,27 +6,28 @@ namespace akt {
   template<class T, unsigned N>
   class Stack {
     T elements[N];
-    unsigned top;
+    unsigned tos; // top of stack
 
   public:
-    Stack() : top(0) { }
+    Stack() : tos(0) { }
 
-    void               reset()       { top = 0; }
-    bool               empty() const { return top == 0; }
-    bool                full() const { return top == N; }
-    unsigned space_remaining() const { return N - top; }
+    void               reset()       { tos = 0; }
+    bool               empty() const { return tos == 0; }
+    bool                full() const { return tos == N; }
+    unsigned space_remaining() const { return N - tos; }
+    T                   &top()       { return elements[tos - 1]; }
 
     bool push(const T &element) {
       if (full()) return false;
 
-      elements[top++] = element;
+      elements[tos++] = element;
       return true;
     }
 
     bool pop(T &element) {
       if (empty()) return false;
 
-      element = elements[--top];
+      element = elements[--tos];
       return true;
     }
   };
