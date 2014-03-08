@@ -15,7 +15,7 @@ OBJ                      = $(BUILD)/obj
 # Source files
 C_SRC                   += 
 CXX_SRC                 += src/gtest-all.cc src/gtest_main.cc
-CXX_SRC                 += $(LIBAKT_ROOT)/akt/json/reader.cc
+CXX_SRC                 += $(LIBAKT_ROOT)/akt/json/reader.cc $(LIBAKT_ROOT)/akt/json/stream_writer.cc
 CXX_SRC                 += $(shell find . -type f -name '*test.cc')
 
 # Object files
