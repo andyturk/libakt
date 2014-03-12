@@ -8,14 +8,21 @@
 
 namespace akt {
   namespace json {
-    class StreamWriter : public Visitor {
-      std::ostream &out;
+    class WriterBase : public Visitor {
+      bool had_error;
       Stack<unsigned, 100> stack;
 
-    public:
-      StreamWriter(std::ostream &out);
-      void reset();
+    protected:
+      virtual void write(char c) = 0;
+      virtual void write(const char *str) = 0;
+      virtual void write(const char *bytes, unsigned len) = 0;
 
+      void write_quoted(const char *str);
+
+    public:
+      WriterBase();
+
+      virtual void reset();
       virtual void object_begin() = 0;
       virtual void object_end() = 0;
       virtual void array_begin() = 0;
@@ -28,6 +35,19 @@ namespace akt {
       virtual void number(int32_t n) = 0;
       virtual void number(float n) = 0;
       virtual void error() = 0;
+    };
+
+    class StreamWriter : WriterBase {
+      std::ostream &out;
+
+    public:
+      StreamWriter(std::ostream &out) :
+        WriterBase(),
+        out(out)
+      {
+      }
+
+
     };
   }
 }

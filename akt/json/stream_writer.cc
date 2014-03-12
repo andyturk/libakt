@@ -1,75 +1,139 @@
 // -*- Mode:C++ -*-
 
 #include "akt/json/stream_writer.h"
+#include <cstdio>
 
 using namespace akt::json;
 using namespace std;
 
-StreamWriter::StreamWriter(ostream &out) :
-  out(out)
+WriterBase::WriterBase() :
+  had_error(false)
 {
 }
 
-void StreamWriter::reset() {
+void WriterBase::reset() {
   stack.reset();
+  had_error = false;
 }
 
-void StreamWriter::object_begin() {
-  stack.push(0);
-  out << "{";
+void WriterBase::object_begin() {
+  if (had_error) return;
+
+  if (stack.full()) {
+    error();
+  } else {
+    stack.push(0);
+    write("{");
+  }
 }
 
-void StreamWriter::object_end() {
-  unsigned count;
-  stack.pop(count);
-  out << "}";
+void WriterBase::object_end() {
+  if (had_error) return;
+
+  if (stack.empty()) {
+    error();
+  } else {
+    unsigned count;
+    stack.pop(count);
+    write("}");
+  }
 }
 
-void StreamWriter::array_begin() {
-  stack.push(0);
-  out << "[";
+void WriterBase::array_begin() {
+  if (had_error) return;
+
+  if (stack.full()) {
+    error();
+  } else {
+    stack.push(0);
+    write("[");
+  }
 }
 
-void StreamWriter::array_end() {
-  unsigned count;
-  stack.pop(count);
-  out << "]";
+void WriterBase::array_end() {
+  if (had_error) return;
+
+  if (stack.empty()) {
+    error();
+  } else {
+    unsigned count;
+    stack.pop(count);
+    write("]");
+  }
 }
 
-void StreamWriter::member_name(const char *text) {
-  out << text << ':';
+void WriterBase::member_name(const char *text) {
+  if (had_error) return;
+
+  write('"');
+  write_quoted(text);
+  write("\" : ");
 }
 
-void StreamWriter::string(const char *text) {
-  out << '"' << text << '"';
-  if (!stack.empty() && stack.top() > 0) out << ',';
+void WriterBase::string(const char *text) {
+  if (had_error) return;
+
+  write('"');
+  write_quoted(text);
+  write('"');
+
+  if (!stack.empty() && stack.top() > 0) write(',');
 }
 
-void StreamWriter::literal_true() {
-  out << "true";
-  if (!stack.empty() && stack.top() > 0) out << ',';
+void WriterBase::write_quoted(const char *str) {
+  // this needs to change
+  write(str);
 }
 
-void StreamWriter::literal_false() {
-  out << "false";
-  if (!stack.empty() && stack.top() > 0) out << ',';
+void WriterBase::literal_true() {
+  if (had_error) return;
+
+  write("true");
+
+  if (!stack.empty() && stack.top() > 0) write(',');
 }
 
-void StreamWriter::literal_null() {
-  out << "null";
-  if (!stack.empty() && stack.top() > 0) out << ',';
+void WriterBase::literal_false() {
+  if (had_error) return;
+
+  write("false");
+
+  if (!stack.empty() && stack.top() > 0) write(',');
 }
 
-void StreamWriter::number(int32_t n) {
-  out << n;
-  if (!stack.empty() && stack.top() > 0) out << ',';
+void WriterBase::literal_null() {
+  if (had_error) return;
+
+  write("null");
+
+  if (!stack.empty() && stack.top() > 0) write(',');
 }
 
-void StreamWriter::number(float n) {
-  out << n;
-  if (!stack.empty() && stack.top() > 0) out << ',';
+void WriterBase::number(int32_t n) {
+  if (had_error) return;
+
+  char buffer[20];
+
+  snprintf(buffer, sizeof(buffer), "%d", n);
+  write(buffer);
+
+  if (!stack.empty() && stack.top() > 0) write(',');
 }
 
-void StreamWriter::error() {
-  out << "ERROR";
+void WriterBase::number(float n) {
+  if (had_error) return;
+
+  char buffer[20];
+
+  snprintf(buffer, sizeof(buffer), "%f", n);
+  write(buffer);
+
+  if (!stack.empty() && stack.top() > 0) write(',');
+}
+
+void WriterBase::error() {
+  if (had_error) return;
+
+  write("\nERROR");
+  had_error = true;
 }
