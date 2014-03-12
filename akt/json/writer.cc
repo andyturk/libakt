@@ -1,6 +1,6 @@
 // -*- Mode:C++ -*-
 
-#include "akt/json/stream_writer.h"
+#include "akt/json/writer.h"
 #include <cstdio>
 
 using namespace akt::json;
