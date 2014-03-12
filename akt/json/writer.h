@@ -1,15 +1,22 @@
 // -*- Mode:C++ -*-
 #pragma once
 
+#if defined(__APPLE__) || defined(_WIN32) || defined(__x86_64__)
+#define USE_JSON_STREAMS
+#endif
+
 #include "akt/json/visitor.h"
 #include "akt/stack.h"
 
+#if defined(USE_JSON_STREAMS)
 #include <ostream>
+#include <sstream>
+#endif
 
 namespace akt {
   namespace json {
     class WriterBase : public Visitor {
-      bool had_error;
+      bool had_error, skip_next_comma;
       Stack<unsigned, 100> stack;
 
     protected:
@@ -18,26 +25,28 @@ namespace akt {
       virtual void write(const char *bytes, unsigned len) = 0;
 
       void write_quoted(const char *str);
+      void write_comma_if_necessary();
 
     public:
       WriterBase();
 
       virtual void reset();
-      virtual void object_begin() = 0;
-      virtual void object_end() = 0;
-      virtual void array_begin() = 0;
-      virtual void array_end() = 0;
-      virtual void member_name(const char *text) = 0;
-      virtual void string(const char *text) = 0;
-      virtual void literal_true() = 0;
-      virtual void literal_false() = 0;
-      virtual void literal_null() = 0;
-      virtual void number(int32_t n) = 0;
-      virtual void number(float n) = 0;
-      virtual void error() = 0;
+      virtual void object_begin();
+      virtual void object_end();
+      virtual void array_begin();
+      virtual void array_end();
+      virtual void member_name(const char *text);
+      virtual void string(const char *text);
+      virtual void literal_true();
+      virtual void literal_false();
+      virtual void literal_null();
+      virtual void number(int32_t n);
+      virtual void number(float n);
+      virtual void error();
     };
 
-    class StreamWriter : WriterBase {
+#if defined(USE_JSON_STREAMS)
+    class StreamWriter : public WriterBase {
       std::ostream &out;
 
     public:
@@ -47,7 +56,24 @@ namespace akt {
       {
       }
 
-
+      virtual void write(char c) override { out << c; }
+      virtual void write(const char *str) override { out << str; }
+      virtual void write(const char *bytes, unsigned len) override { out.write(bytes, len); }
     };
+
+    class StringBufWriter : public StreamWriter {
+      std::stringbuf buffer;
+      std::ostream s;
+
+    public:
+      StringBufWriter() :
+        StreamWriter(s),
+        s(&buffer)
+      {
+      }
+
+      std::string str() { return buffer.str(); }
+    };
+#endif
   }
 }

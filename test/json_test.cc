@@ -1,4 +1,5 @@
 #include <akt/json/reader.h>
+#include <akt/json/writer.h>
 #include <akt/json/visitor.h>
 
 #include <gtest/gtest.h>
@@ -267,4 +268,104 @@ TEST_F(JSONTest, ParseOneMemberInt2) {
 TEST_F(JSONTest, ParseFloat1) {
   static const char *replay[] = {"[", "1.0", "3.1415", "-6", "-3.0E12", "]", 0};
   EXPECT_TRUE(parse("[1.0, 3.1415, -6, -3.0E12]", replay));
+}
+
+TEST(JSONTestCase, WriteEmptyArray) {
+  StringBufWriter sbw;
+
+  sbw.array_begin();
+  sbw.array_end();
+
+  EXPECT_TRUE("[]" == sbw.str());
+}
+
+TEST(JSONWriterTest, WriteSingleIntegerArray) {
+  StringBufWriter sbw;
+
+  sbw.array_begin();
+  sbw.number(123);
+  sbw.array_end();
+
+  EXPECT_TRUE("[123]" == sbw.str());
+}
+
+TEST(JSONWriterTest, WriteIntegersArray) {
+  StringBufWriter sbw;
+
+  sbw.array_begin();
+  sbw.number(123);
+  sbw.number(456);
+  sbw.array_end();
+
+  EXPECT_TRUE("[123, 456]" == sbw.str());
+}
+
+TEST(JSONWriterTest, WriteNumbersArray) {
+  StringBufWriter sbw;
+
+  sbw.array_begin();
+  sbw.number(-123);
+  sbw.number((float) -456.789);
+  sbw.array_end();
+
+  EXPECT_TRUE("[-123, -456.789]" == sbw.str());
+}
+
+TEST(JSONWriterTest, WriteScientificNumbersArray) {
+  StringBufWriter sbw;
+
+  sbw.array_begin();
+  sbw.number((float) -123E10);
+  sbw.number((float) -456.789E-10);
+  sbw.array_end();
+
+  EXPECT_TRUE("[-1.23e+12, -4.56789e-08]" == sbw.str());
+}
+
+TEST(JSONWriterTest, WriteEmptyObject) {
+  StringBufWriter sbw;
+
+  sbw.object_begin();
+  sbw.object_end();
+
+  EXPECT_TRUE("{}" == sbw.str());
+}
+
+TEST(JSONWriterTest, WriteSingletonObject) {
+  StringBufWriter sbw;
+
+  sbw.object_begin();
+  sbw.member_name("foo");
+  sbw.string("bar");
+  sbw.object_end();
+
+  EXPECT_TRUE("{\"foo\" : \"bar\"}" == sbw.str());
+}
+
+TEST(JSONWriterTest, WriteObject2Members) {
+  StringBufWriter sbw;
+
+  sbw.object_begin();
+  sbw.member_name("foo");
+  sbw.number(-9999999);
+  sbw.member_name("bar");
+  sbw.string("zippity do dah!");
+  sbw.object_end();
+
+  EXPECT_TRUE("{\"foo\" : -9999999, \"bar\" : \"zippity do dah!\"}" == sbw.str());
+}
+
+TEST(JSONWriterTest, WriteObject2MembersWithOneArray) {
+  StringBufWriter sbw;
+
+  sbw.object_begin();
+  sbw.member_name("foo");
+  sbw.number(-9999999);
+  sbw.member_name("bar");
+  sbw.array_begin();
+  sbw.string("zippity do dah!");
+  sbw.array_end();
+  sbw.object_end();
+
+  EXPECT_TRUE("{\"foo\" : -9999999, \"bar\" : [\"zippity do dah!\"]}" == sbw.str());
 }
