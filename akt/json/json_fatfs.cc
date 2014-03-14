@@ -61,8 +61,10 @@ void FATFSWriter::write(const char *str) {
 
 void FATFSWriter::write(const char *bytes, unsigned len) {
   FRESULT result;
+  UINT bytes_written;
 
-  if ((result = f_write(&fil, bytes, len)) != FR_OK) {
+  result = f_write(&fil, bytes, len, &bytes_read);
+  if (result != FR_OK || len != bytes_read) {
     error();
   }
 }
