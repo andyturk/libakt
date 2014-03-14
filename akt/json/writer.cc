@@ -126,7 +126,7 @@ void WriterBase::num_int(int32_t n) {
 
   char buffer[20];
 
-  snprintf(buffer, sizeof(buffer), "%d", n);
+  snprintf(buffer, sizeof(buffer), "%ld", n);
   write(buffer);
 
   if (!stack.empty()) stack.top()++;

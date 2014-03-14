@@ -29,7 +29,9 @@ bool FATFSReader::read_file(const char *filename) {
     reader.read(file_buffer, bytes_read);
   }
 
-  f_close(&file);
+  f_close(&fil);
+
+  return !reader.had_error();
 }
 
 FATFSWriter::FATFSWriter() {
@@ -41,20 +43,18 @@ bool FATFSWriter::write_file(const char *filename) {
   if ((result = f_open(&fil, filename, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK) {
     return false;
   }
+
+  return true;
 }
 
 void FATFSWriter::write(char c) {
-  FRESULT result;
-
-  if ((result = f_putc(c, &fil)) != FR_OK) {
+  if (f_putc(c, &fil) != 1) {
     error();
   }
 }
 
 void FATFSWriter::write(const char *str) {
-  FRESULT result;
-
-  if ((result = f_puts(str, &fil)) != FR_OK) {
+  if (f_puts(str, &fil) == -1) {
     error();
   }
 }
@@ -63,8 +63,8 @@ void FATFSWriter::write(const char *bytes, unsigned len) {
   FRESULT result;
   UINT bytes_written;
 
-  result = f_write(&fil, bytes, len, &bytes_read);
-  if (result != FR_OK || len != bytes_read) {
+  result = f_write(&fil, bytes, len, &bytes_written);
+  if (result != FR_OK || len != bytes_written) {
     error();
   }
 }
