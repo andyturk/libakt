@@ -7,18 +7,18 @@ namespace akt {
   namespace json {
     class Visitor {
     public:
-      virtual void object_begin() = 0;
-      virtual void object_end() = 0;
-      virtual void array_begin() = 0;
-      virtual void array_end() = 0;
-      virtual void member_name(const char *text) = 0;
-      virtual void string(const char *text) = 0;
-      virtual void literal_true() = 0;
-      virtual void literal_false() = 0;
-      virtual void literal_null() = 0;
-      virtual void number(int32_t n) = 0;
-      virtual void number(float n) = 0;
-      virtual void error() = 0;
+      virtual void object_begin() {}
+      virtual void object_end() {}
+      virtual void array_begin() {}
+      virtual void array_end() {}
+      virtual void member_name(const char *text) {}
+      virtual void string(const char *text) {}
+      virtual void literal_true() {}
+      virtual void literal_false() {}
+      virtual void literal_null() {}
+      virtual void number(int32_t n) {}
+      virtual void number(float n) {}
+      virtual void error() {}
     };
   }
 }

@@ -8,48 +8,6 @@
 
 using namespace akt::json;
 
-class SimpleVisitor : public Visitor {
-public:
-  SimpleVisitor() {
-  }
-
-  virtual void object_begin() override {
-  }
-
-  virtual void object_end() override {
-  }
-
-  virtual void array_begin() override {
-  }
-
-  virtual void array_end() override {
-  }
-
-  virtual void member_name(const char *text) override {
-  }
-
-  virtual void string(const char *text) override {
-  }
-
-  virtual void literal_true() override {
-  }
-
-  virtual void literal_false() override {
-  }
-
-  virtual void literal_null() override {
-  }
-
-  virtual void number(int32_t n) override {
-  }
-
-  virtual void number(float n) override {
-  }
-
-  virtual void error() override {
-  }
-};
-
 class ReplayVisitor : public Visitor {
   const char **tokens;
 
@@ -185,7 +143,7 @@ public:
 
 class JSONTest : public ::testing::Test {
 protected:
-  SimpleVisitor visitor;
+  Visitor visitor;
   Reader reader;
   char token_buffer[100];
 
