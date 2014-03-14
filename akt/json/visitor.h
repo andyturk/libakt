@@ -7,6 +7,8 @@ namespace akt {
   namespace json {
     class Visitor {
     public:
+      Visitor() {}
+
       virtual void object_begin() {}
       virtual void object_end() {}
       virtual void array_begin() {}
