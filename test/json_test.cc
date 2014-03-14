@@ -106,7 +106,7 @@ public:
     string(text);
   }
 
-  virtual void number(int32_t n) {
+  virtual void num_int(int32_t n) {
     const char *match = *tokens++;
 
     if (match == 0) {
@@ -119,7 +119,7 @@ public:
     }
   }
 
-  virtual void number(float n) {
+  virtual void num_float(float n) {
     const char *match = *tokens++;
 
     if (match == 0) {
@@ -241,7 +241,7 @@ TEST(JSONWriterTest, WriteSingleIntegerArray) {
   StringBufWriter sbw;
 
   sbw.array_begin();
-  sbw.number(123);
+  sbw.num_int(123);
   sbw.array_end();
 
   EXPECT_TRUE("[123]" == sbw.str());
@@ -251,8 +251,8 @@ TEST(JSONWriterTest, WriteIntegersArray) {
   StringBufWriter sbw;
 
   sbw.array_begin();
-  sbw.number(123);
-  sbw.number(456);
+  sbw.num_int(123);
+  sbw.num_int(456);
   sbw.array_end();
 
   EXPECT_TRUE("[123, 456]" == sbw.str());
@@ -262,8 +262,8 @@ TEST(JSONWriterTest, WriteNumbersArray) {
   StringBufWriter sbw;
 
   sbw.array_begin();
-  sbw.number(-123);
-  sbw.number((float) -456.789);
+  sbw.num_int(-123);
+  sbw.num_float((float) -456.789);
   sbw.array_end();
 
   EXPECT_TRUE("[-123, -456.789]" == sbw.str());
@@ -273,8 +273,8 @@ TEST(JSONWriterTest, WriteScientificNumbersArray) {
   StringBufWriter sbw;
 
   sbw.array_begin();
-  sbw.number((float) -123E10);
-  sbw.number((float) -456.789E-10);
+  sbw.num_float((float) -123E10);
+  sbw.num_float((float) -456.789E-10);
   sbw.array_end();
 
   EXPECT_TRUE("[-1.23e+12, -4.56789e-08]" == sbw.str());
@@ -305,7 +305,7 @@ TEST(JSONWriterTest, WriteObject2Members) {
 
   sbw.object_begin();
   sbw.member_name("foo");
-  sbw.number(-9999999);
+  sbw.num_int(-9999999);
   sbw.member_name("bar");
   sbw.string("zippity do dah!");
   sbw.object_end();
@@ -318,7 +318,7 @@ TEST(JSONWriterTest, WriteObject2MembersWithOneArray) {
 
   sbw.object_begin();
   sbw.member_name("foo");
-  sbw.number(-9999999);
+  sbw.num_int(-9999999);
   sbw.member_name("bar");
   sbw.array_begin();
   sbw.string("zippity do dah!");

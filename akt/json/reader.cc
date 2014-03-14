@@ -92,11 +92,11 @@ void Reader::handle_keyword() {
 }
 
 void Reader::handle_integer() {
-  delegate->number((int) atoi(token.buffer));
+  delegate->num_int((int) atoi(token.buffer));
 }
 
 void Reader::handle_number() {
-  delegate->number((float) atof(token.buffer));
+  delegate->num_float((float) atof(token.buffer));
 }
 
 void Reader::read(const char *text, unsigned len) {

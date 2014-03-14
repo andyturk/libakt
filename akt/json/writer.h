@@ -40,8 +40,8 @@ namespace akt {
       virtual void literal_true();
       virtual void literal_false();
       virtual void literal_null();
-      virtual void number(int32_t n);
-      virtual void number(float n);
+      virtual void num_int(int32_t n);
+      virtual void num_float(float n);
       virtual void error();
     };
 

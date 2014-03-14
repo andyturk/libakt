@@ -120,7 +120,7 @@ void WriterBase::literal_null() {
   if (!stack.empty()) stack.top()++;
 }
 
-void WriterBase::number(int32_t n) {
+void WriterBase::num_int(int32_t n) {
   if (had_error) return;
   write_comma_if_necessary();
 
@@ -132,7 +132,7 @@ void WriterBase::number(int32_t n) {
   if (!stack.empty()) stack.top()++;
 }
 
-void WriterBase::number(float n) {
+void WriterBase::num_float(float n) {
   if (had_error) return;
   write_comma_if_necessary();
 
