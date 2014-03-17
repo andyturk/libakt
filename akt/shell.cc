@@ -120,14 +120,16 @@ msg_t ShellCommand::run_loop(void *) {
 template<class T>
 bool ShellCommand::parse_number(const char *str, T &out) {
   unsigned int hex;
-  int dec;
+  int dec, count;
 
-  if (sscanf(str, "0x%x", &hex)) {
-    out = hex;
-    return true;
+  if (str[0] == '0' && str[1] == 'x') {
+    if ((count = sscanf(str + 2, "%x", &hex))) {
+      out = hex;
+      return true;
+    }
   }
 
-  if (sscanf(str, "%d", &dec)) {
+  if ((count = sscanf(str, "%d", &dec))) {
     out = dec;
     return true;
   }
@@ -136,6 +138,7 @@ bool ShellCommand::parse_number(const char *str, T &out) {
 }
 
 template bool ShellCommand::parse_number(const char *str, uint16_t &out);
+template bool ShellCommand::parse_number(const char *str, int16_t &out);
 template bool ShellCommand::parse_number(const char *str, uint8_t &out);
 template bool ShellCommand::parse_number(const char *str, int &out);
 
