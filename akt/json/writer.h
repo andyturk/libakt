@@ -16,7 +16,7 @@
 namespace akt {
   namespace json {
     class WriterBase : public Visitor {
-      bool had_error, skip_next_comma;
+      bool had_error, skip_next_comma, needs_new_line;
       Stack<unsigned, 100> stack;
 
     protected:
@@ -26,6 +26,8 @@ namespace akt {
 
       void write_quoted(const char *str);
       void write_comma_if_necessary();
+      void newline_and_indent();
+      void write_newline_if_necessary();
 
     public:
       WriterBase();
@@ -43,6 +45,7 @@ namespace akt {
       virtual void num_int(int32_t n);
       virtual void num_float(float n);
       virtual void error();
+      virtual void newline();
     };
 
 #if defined(USE_JSON_STREAMS)

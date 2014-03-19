@@ -38,6 +38,7 @@ void WriterBase::object_end() {
     stack.pop(count);
     write("}");
     if (!stack.empty()) stack.top()++;
+    write_newline_if_necessary();
   }
 }
 
@@ -63,6 +64,7 @@ void WriterBase::array_end() {
     stack.pop(count);
     write("]");
     if (!stack.empty()) stack.top()++;
+    write_newline_if_necessary();
   }
 }
 
@@ -126,7 +128,7 @@ void WriterBase::num_int(int32_t n) {
 
   char buffer[20];
 
-  snprintf(buffer, sizeof(buffer), "%ld", n);
+  snprintf(buffer, sizeof(buffer), "%d", (int) n);
   write(buffer);
 
   if (!stack.empty()) stack.top()++;
@@ -154,4 +156,22 @@ void WriterBase::error() {
 void WriterBase::write_comma_if_necessary() {
   if (!skip_next_comma && !stack.empty() && stack.top() > 0) write(", ");
   skip_next_comma = false;
+  write_newline_if_necessary();
+}
+
+void WriterBase::newline_and_indent() {
+  write("\r\n");
+  for (unsigned i=0; i < stack.depth(); ++i) write(' ');
+}
+
+void WriterBase::write_newline_if_necessary() {
+  if (needs_new_line) {
+    newline_and_indent();
+    needs_new_line = false;
+  }
+}
+
+void WriterBase::newline() {
+  if (had_error) return;
+  needs_new_line = true;
 }
