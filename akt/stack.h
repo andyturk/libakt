@@ -15,6 +15,7 @@ namespace akt {
     bool               empty() const { return tos == 0; }
     bool                full() const { return tos == N; }
     unsigned space_remaining() const { return N - tos; }
+    unsigned           depth() const { return tos; }
     T                   &top()       { return elements[tos - 1]; }
 
     bool push(const T &element) {
@@ -30,5 +31,6 @@ namespace akt {
       element = elements[--tos];
       return true;
     }
+
   };
 }
